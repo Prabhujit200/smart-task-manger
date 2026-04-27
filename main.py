@@ -58,6 +58,11 @@ class Task(BaseModel):
     status: str
     username: str
 
+
+@app.get("/")
+def home():
+    return {"message": "Smart Task Manager API is running"}
+    
 # ---------------- AUTH APIs ----------------
 @app.post("/signup")
 def signup(user: User):
