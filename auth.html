@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login / Signup</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 500px;
+        margin: 60px auto;
+        padding: 20px;
+        background-color: #f4f6f8;
+      }
+
+      .box {
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        text-align: center;
+      }
+
+      input {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        font-size: 16px;
+      }
+
+      button {
+        padding: 10px 16px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 10px;
+        margin-right: 8px;
+        border: none;
+        border-radius: 5px;
+        color: white;
+      }
+
+      .signup-btn {
+        background-color: green;
+      }
+
+      .login-btn {
+        background-color: blue;
+      }
+
+      #message {
+        margin-top: 15px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h1>User Login / Signup</h1>
+
+      <input type="text" id="username" placeholder="Enter username" />
+      <input type="password" id="password" placeholder="Enter password" />
+
+      <button class="signup-btn" onclick="signup()">Sign Up</button>
+      <button class="login-btn" onclick="login()">Login</button>
+
+      <p id="message"></p>
+    </div>
+
+    <script>
+      const apiBase = "http://127.0.0.1:8000";
+
+      async function signup() {
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        if (!username || !password) {
+          document.getElementById("message").innerText =
+            "Please fill all fields";
+          return;
+        }
+
+        const response = await fetch(`${apiBase}/signup`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: username,
+            password: password,
+          }),
+        });
+
+        const result = await response.json();
+        document.getElementById("message").innerText =
+          result.message || result.error;
+      }
+
+      async function login() {
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        if (!username || !password) {
+          document.getElementById("message").innerText =
+            "Please fill all fields";
+          return;
+        }
+
+        const response = await fetch(`${apiBase}/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: username,
+            password: password,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.message) {
+          localStorage.setItem("loggedInUser", username);
+          window.location.href = "index.html";
+        } else {
+          document.getElementById("message").innerText = result.error;
+        }
+      }
+    </script>
+  </body>
+</html>

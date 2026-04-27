@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Task Manager</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 20px;
+        background-color: #f4f6f8;
+      }
+
+      h1 {
+        text-align: center;
+      }
+
+      .top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
+        padding: 15px 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .logout-btn {
+        background-color: crimson;
+        color: white;
+        border: none;
+        padding: 10px 16px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      .dashboard {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .card {
+        flex: 1;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .card h2 {
+        margin: 0;
+        font-size: 28px;
+      }
+
+      .card p {
+        margin-top: 8px;
+        color: #555;
+      }
+
+      .form-box,
+      .filter-box,
+      .task {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .filter-box,
+      .task {
+        margin-top: 20px;
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 10px;
+        margin: 8px 0;
+        font-size: 16px;
+      }
+
+      button {
+        padding: 10px 16px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 10px;
+        border-radius: 5px;
+        border: none;
+        margin-right: 8px;
+      }
+
+      .save-btn {
+        background-color: green;
+        color: white;
+      }
+      .delete-btn {
+        background-color: red;
+        color: white;
+      }
+      .edit-btn {
+        background-color: blue;
+        color: white;
+      }
+      .toggle-btn {
+        background-color: purple;
+        color: white;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 20px;
+        color: white;
+        font-size: 14px;
+        font-weight: bold;
+        margin-right: 8px;
+      }
+
+      .priority-high {
+        background-color: #e53935;
+      }
+      .priority-medium {
+        background-color: #fb8c00;
+      }
+      .priority-low {
+        background-color: #43a047;
+      }
+      .status-pending {
+        background-color: #757575;
+      }
+      .status-completed {
+        background-color: #2e7d32;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="top-bar">
+      <h3 id="welcomeText">Welcome</h3>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <h1>Smart Task Manager</h1>
+
+    <div class="dashboard">
+      <div class="card">
+        <h2 id="totalCount">0</h2>
+        <p>Total Tasks</p>
+      </div>
+      <div class="card">
+        <h2 id="pendingCount">0</h2>
+        <p>Pending Tasks</p>
+      </div>
+      <div class="card">
+        <h2 id="completedCount">0</h2>
+        <p>Completed Tasks</p>
+      </div>
+    </div>
+
+    <div class="form-box">
+      <input type="hidden" id="taskId" />
+
+      <input type="text" id="title" placeholder="Task Title" />
+      <input type="text" id="description" placeholder="Task Description" />
+      <input type="date" id="due_date" />
+
+      <select id="priority">
+        <option value="">Select Priority</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+
+      <select id="status">
+        <option value="">Select Status</option>
+        <option value="Pending">Pending</option>
+        <option value="Completed">Completed</option>
+      </select>
+
+      <button class="save-btn" onclick="saveTask()">Save Task</button>
+    </div>
+
+    <div class="filter-box">
+      <h3>Search, Filter, and Sort Tasks</h3>
+
+      <input
+        type="text"
+        id="searchTitle"
+        placeholder="Search by title..."
+        oninput="fetchTasks()"
+      />
+
+      <select id="filterStatus" onchange="fetchTasks()">
+        <option value="All">Show All</option>
+        <option value="Pending">Pending Only</option>
+        <option value="Completed">Completed Only</option>
+      </select>
+
+      <select id="sortOption" onchange="fetchTasks()">
+        <option value="default">Default Order</option>
+        <option value="due_date">Sort by Due Date</option>
+        <option value="priority">Sort by Priority</option>
+      </select>
+    </div>
+
+    <div id="taskList"></div>
+
+    <script>
+      const apiBase = "http://127.0.0.1:8000";
+      const loggedInUser = localStorage.getItem("loggedInUser");
+
+      if (!loggedInUser) {
+        alert("Please login first");
+        window.location.href = "auth.html";
+      }
+
+      document.getElementById("welcomeText").innerText =
+        `Welcome, ${loggedInUser}`;
+
+      function logout() {
+        localStorage.removeItem("loggedInUser");
+        window.location.href = "auth.html";
+      }
+
+      function getPriorityClass(priority) {
+        if (priority === "High") return "priority-high";
+        if (priority === "Medium") return "priority-medium";
+        return "priority-low";
+      }
+
+      function getStatusClass(status) {
+        if (status === "Completed") return "status-completed";
+        return "status-pending";
+      }
+
+      function updateDashboard(tasks) {
+        document.getElementById("totalCount").textContent = tasks.length;
+        document.getElementById("pendingCount").textContent = tasks.filter(
+          (t) => t.status === "Pending",
+        ).length;
+        document.getElementById("completedCount").textContent = tasks.filter(
+          (t) => t.status === "Completed",
+        ).length;
+      }
+
+      async function fetchTasks() {
+        const res = await fetch(`${apiBase}/tasks/${loggedInUser}`);
+        let tasks = await res.json();
+
+        updateDashboard(tasks);
+
+        const filter = document.getElementById("filterStatus").value;
+        const searchText = document
+          .getElementById("searchTitle")
+          .value.toLowerCase();
+        const sortOption = document.getElementById("sortOption").value;
+
+        const list = document.getElementById("taskList");
+        list.innerHTML = "";
+
+        if (filter !== "All") {
+          tasks = tasks.filter((t) => t.status === filter);
+        }
+
+        if (searchText) {
+          tasks = tasks.filter((t) =>
+            t.title.toLowerCase().includes(searchText),
+          );
+        }
+
+        if (sortOption === "due_date") {
+          tasks.sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+        }
+
+        if (sortOption === "priority") {
+          const priorityOrder = { High: 1, Medium: 2, Low: 3 };
+          tasks.sort(
+            (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority],
+          );
+        }
+
+        tasks.forEach((task) => {
+          const div = document.createElement("div");
+          div.className = "task";
+
+          const toggleText =
+            task.status === "Completed" ? "Mark Pending" : "Mark Complete";
+
+          div.innerHTML = `
+            <h3>${task.title}</h3>
+            <p>${task.description}</p>
+            <p><b>Due:</b> ${task.due_date}</p>
+            <p>
+                <span class="badge ${getPriorityClass(task.priority)}">${task.priority}</span>
+                <span class="badge ${getStatusClass(task.status)}">${task.status}</span>
+            </p>
+            <button class="edit-btn" onclick="editTask(${task.id}, '${task.title}', '${task.description}', '${task.due_date}', '${task.priority}', '${task.status}')">Edit</button>
+            <button class="toggle-btn" onclick="toggleStatus(${task.id}, '${task.title}', '${task.description}', '${task.due_date}', '${task.priority}', '${task.status}')">${toggleText}</button>
+            <button class="delete-btn" onclick="deleteTask(${task.id})">Delete</button>
+        `;
+
+          list.appendChild(div);
+        });
+      }
+
+      async function saveTask() {
+        const id = document.getElementById("taskId").value;
+
+        const data = {
+          title: document.getElementById("title").value,
+          description: document.getElementById("description").value,
+          due_date: document.getElementById("due_date").value,
+          priority: document.getElementById("priority").value,
+          status: document.getElementById("status").value,
+          username: loggedInUser,
+        };
+
+        if (
+          !data.title ||
+          !data.description ||
+          !data.due_date ||
+          !data.priority ||
+          !data.status
+        ) {
+          alert("Fill all fields");
+          return;
+        }
+
+        if (id) {
+          await fetch(`${apiBase}/tasks/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+        } else {
+          await fetch(`${apiBase}/tasks`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+        }
+
+        clearForm();
+        fetchTasks();
+      }
+
+      function editTask(id, title, description, due_date, priority, status) {
+        document.getElementById("taskId").value = id;
+        document.getElementById("title").value = title;
+        document.getElementById("description").value = description;
+        document.getElementById("due_date").value = due_date;
+        document.getElementById("priority").value = priority;
+        document.getElementById("status").value = status;
+      }
+
+      async function toggleStatus(
+        id,
+        title,
+        description,
+        due_date,
+        priority,
+        status,
+      ) {
+        const newStatus = status === "Completed" ? "Pending" : "Completed";
+
+        const updatedTask = {
+          title: title,
+          description: description,
+          due_date: due_date,
+          priority: priority,
+          status: newStatus,
+          username: loggedInUser,
+        };
+
+        await fetch(`${apiBase}/tasks/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updatedTask),
+        });
+
+        fetchTasks();
+      }
+
+      async function deleteTask(id) {
+        await fetch(`${apiBase}/tasks/${id}`, { method: "DELETE" });
+        fetchTasks();
+      }
+
+      function clearForm() {
+        document.getElementById("taskId").value = "";
+        document.getElementById("title").value = "";
+        document.getElementById("description").value = "";
+        document.getElementById("due_date").value = "";
+        document.getElementById("priority").value = "";
+        document.getElementById("status").value = "";
+      }
+
+      fetchTasks();
+    </script>
+  </body>
+</html>
