@@ -61,6 +61,8 @@
         border: none;
         color: white;
         cursor: pointer;
+        margin-right: 8px;
+        margin-top: 8px;
       }
 
       .save-btn {
@@ -79,6 +81,31 @@
 
       .task {
         margin-top: 10px;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        color: white;
+        font-weight: bold;
+        margin-right: 8px;
+      }
+
+      .priority-high {
+        background: #e53935;
+      }
+      .priority-medium {
+        background: #fb8c00;
+      }
+      .priority-low {
+        background: #43a047;
+      }
+      .status-pending {
+        background: #757575;
+      }
+      .status-completed {
+        background: #2e7d32;
       }
     </style>
   </head>
@@ -115,15 +142,15 @@
 
       <select id="priority">
         <option value="">Select Priority</option>
-        <option>High</option>
-        <option>Medium</option>
-        <option>Low</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
       </select>
 
       <select id="status">
         <option value="">Select Status</option>
-        <option>Pending</option>
-        <option>Completed</option>
+        <option value="Pending">Pending</option>
+        <option value="Completed">Completed</option>
       </select>
 
       <button class="save-btn" onclick="saveTask()">Save Task</button>
@@ -133,7 +160,7 @@
       <input
         type="text"
         id="searchTitle"
-        placeholder="Search..."
+        placeholder="Search by title..."
         oninput="fetchTasks()"
       />
 
@@ -146,7 +173,6 @@
 
     <div id="taskList"></div>
 
-    <!-- 🔥 CHART ADDED HERE -->
     <div class="form-box">
       <canvas id="taskChart" height="100"></canvas>
     </div>
@@ -166,6 +192,17 @@
       function logout() {
         localStorage.removeItem("loggedInUser");
         window.location.href = "auth.html";
+      }
+
+      function getPriorityClass(priority) {
+        if (priority === "High") return "priority-high";
+        if (priority === "Medium") return "priority-medium";
+        return "priority-low";
+      }
+
+      function getStatusClass(status) {
+        if (status === "Completed") return "status-completed";
+        return "status-pending";
       }
 
       function updateDashboard(tasks) {
@@ -208,6 +245,21 @@
         updateDashboard(tasks);
         renderChart(tasks);
 
+        const filter = document.getElementById("filterStatus").value;
+        const searchText = document
+          .getElementById("searchTitle")
+          .value.toLowerCase();
+
+        if (filter !== "All") {
+          tasks = tasks.filter((task) => task.status === filter);
+        }
+
+        if (searchText) {
+          tasks = tasks.filter((task) =>
+            task.title.toLowerCase().includes(searchText),
+          );
+        }
+
         const list = document.getElementById("taskList");
         list.innerHTML = "";
 
@@ -215,12 +267,23 @@
           const div = document.createElement("div");
           div.className = "task";
 
-          div.innerHTML = `
-            <h3>${task.title}</h3>
-            <p>${task.description}</p>
-            <p>${task.status}</p>
+          const toggleText =
+            task.status === "Completed" ? "Mark Pending" : "Mark Complete";
 
-            <button onclick="deleteTask(${task.id})">Delete</button>
+          div.innerHTML = `
+          <h3>${task.title}</h3>
+          <p>${task.description}</p>
+          <p><b>Due:</b> ${task.due_date}</p>
+          <p>
+            <span class="badge ${getPriorityClass(task.priority)}">${task.priority}</span>
+            <span class="badge ${getStatusClass(task.status)}">${task.status}</span>
+          </p>
+
+          <button class="edit-btn" onclick="editTask(${task.id}, '${task.title}', '${task.description}', '${task.due_date}', '${task.priority}', '${task.status}')">Edit</button>
+
+          <button class="toggle-btn" onclick="toggleStatus(${task.id}, '${task.title}', '${task.description}', '${task.due_date}', '${task.priority}', '${task.status}')">${toggleText}</button>
+
+          <button class="delete-btn" onclick="deleteTask(${task.id})">Delete</button>
         `;
 
           list.appendChild(div);
@@ -228,6 +291,8 @@
       }
 
       async function saveTask() {
+        const id = document.getElementById("taskId").value;
+
         const data = {
           title: document.getElementById("title").value,
           description: document.getElementById("description").value,
@@ -237,18 +302,87 @@
           username: loggedInUser,
         };
 
-        await fetch(`${apiBase}/tasks`, {
-          method: "POST",
+        if (
+          !data.title ||
+          !data.description ||
+          !data.due_date ||
+          !data.priority ||
+          !data.status
+        ) {
+          alert("Fill all fields");
+          return;
+        }
+
+        if (id) {
+          await fetch(`${apiBase}/tasks/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+        } else {
+          await fetch(`${apiBase}/tasks`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+        }
+
+        clearForm();
+        fetchTasks();
+      }
+
+      function editTask(id, title, description, due_date, priority, status) {
+        document.getElementById("taskId").value = id;
+        document.getElementById("title").value = title;
+        document.getElementById("description").value = description;
+        document.getElementById("due_date").value = due_date;
+        document.getElementById("priority").value = priority;
+        document.getElementById("status").value = status;
+      }
+
+      async function toggleStatus(
+        id,
+        title,
+        description,
+        due_date,
+        priority,
+        status,
+      ) {
+        const newStatus = status === "Completed" ? "Pending" : "Completed";
+
+        const updatedTask = {
+          title: title,
+          description: description,
+          due_date: due_date,
+          priority: priority,
+          status: newStatus,
+          username: loggedInUser,
+        };
+
+        await fetch(`${apiBase}/tasks/${id}`, {
+          method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
+          body: JSON.stringify(updatedTask),
         });
 
         fetchTasks();
       }
 
       async function deleteTask(id) {
-        await fetch(`${apiBase}/tasks/${id}`, { method: "DELETE" });
+        await fetch(`${apiBase}/tasks/${id}`, {
+          method: "DELETE",
+        });
+
         fetchTasks();
+      }
+
+      function clearForm() {
+        document.getElementById("taskId").value = "";
+        document.getElementById("title").value = "";
+        document.getElementById("description").value = "";
+        document.getElementById("due_date").value = "";
+        document.getElementById("priority").value = "";
+        document.getElementById("status").value = "";
       }
 
       fetchTasks();
