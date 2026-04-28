@@ -1,9 +1,11 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Smart Task Manager</title>
+
     <style>
       * {
         box-sizing: border-box;
@@ -24,7 +26,6 @@
         color: white;
         font-size: 42px;
         margin-bottom: 25px;
-        text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       }
 
       .top-bar,
@@ -33,183 +34,58 @@
       .task,
       .card {
         background: rgba(255, 255, 255, 0.92);
-        backdrop-filter: blur(12px);
         border-radius: 18px;
         box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
-        transition:
-          transform 0.25s ease,
-          box-shadow 0.25s ease;
-      }
-
-      .top-bar:hover,
-      .form-box:hover,
-      .filter-box:hover,
-      .task:hover,
-      .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 25px 45px rgba(0, 0, 0, 0.35);
-      }
-
-      .top-bar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 18px 24px;
-        margin-bottom: 25px;
+        padding: 20px;
+        margin-bottom: 20px;
       }
 
       .dashboard {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 18px;
-        margin-bottom: 25px;
-      }
-
-      .card {
-        padding: 25px;
-        text-align: center;
-      }
-
-      .card h2 {
-        margin: 0;
-        font-size: 38px;
-        color: #5a35d6;
-      }
-
-      .card p {
-        margin-top: 8px;
-        color: #555;
-        font-weight: 600;
-      }
-
-      .form-box,
-      .filter-box {
-        padding: 25px;
-        margin-bottom: 25px;
+        gap: 15px;
       }
 
       input,
       select {
         width: 100%;
-        padding: 14px;
+        padding: 12px;
         margin: 10px 0;
-        font-size: 16px;
+        border-radius: 10px;
         border: none;
-        border-radius: 12px;
-        background: #f1f3f8;
-        outline: none;
-        box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.08);
-      }
-
-      input:focus,
-      select:focus {
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.35);
       }
 
       button {
-        padding: 12px 18px;
-        font-size: 15px;
-        cursor: pointer;
-        margin-top: 10px;
-        border-radius: 12px;
+        padding: 10px 15px;
+        border-radius: 10px;
         border: none;
-        margin-right: 8px;
         color: white;
-        font-weight: 600;
-        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
-        transition:
-          transform 0.2s ease,
-          box-shadow 0.2s ease;
-      }
-
-      button:hover {
-        transform: translateY(-3px) scale(1.03);
-        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.35);
+        cursor: pointer;
       }
 
       .save-btn {
-        background: linear-gradient(135deg, #00b09b, #96c93d);
+        background: green;
       }
-
       .logout-btn,
       .delete-btn {
-        background: linear-gradient(135deg, #ff416c, #ff4b2b);
+        background: red;
       }
-
       .edit-btn {
-        background: linear-gradient(135deg, #2193b0, #6dd5ed);
+        background: blue;
       }
-
       .toggle-btn {
-        background: linear-gradient(135deg, #8e2de2, #4a00e0);
+        background: purple;
       }
 
       .task {
-        padding: 22px;
-        margin-top: 18px;
-        border-left: 6px solid #667eea;
-      }
-
-      .task h3 {
-        margin-top: 0;
-        font-size: 24px;
-        color: #333;
-      }
-
-      .task p {
-        color: #555;
-      }
-
-      .badge {
-        display: inline-block;
-        padding: 6px 12px;
-        border-radius: 30px;
-        color: white;
-        font-size: 13px;
-        font-weight: bold;
-        margin-right: 8px;
-        box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
-      }
-
-      .priority-high {
-        background: linear-gradient(135deg, #ff0844, #ffb199);
-      }
-
-      .priority-medium {
-        background: linear-gradient(135deg, #f7971e, #ffd200);
-      }
-
-      .priority-low {
-        background: linear-gradient(135deg, #11998e, #38ef7d);
-      }
-
-      .status-pending {
-        background: linear-gradient(135deg, #606c88, #3f4c6b);
-      }
-
-      .status-completed {
-        background: linear-gradient(135deg, #00b09b, #96c93d);
-      }
-
-      @media (max-width: 768px) {
-        .dashboard {
-          grid-template-columns: 1fr;
-        }
-
-        body {
-          margin: 10px;
-          padding: 12px;
-        }
-
-        h1 {
-          font-size: 32px;
-        }
+        margin-top: 10px;
       }
     </style>
   </head>
+
   <body>
     <div class="top-bar">
-      <h3 id="welcomeText">Welcome</h3>
+      <h3 id="welcomeText"></h3>
       <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
 
@@ -230,6 +106,11 @@
       </div>
     </div>
 
+    <!-- 🔥 CHART ADDED HERE -->
+    <div class="form-box">
+      <canvas id="taskChart" height="100"></canvas>
+    </div>
+
     <div class="form-box">
       <input type="hidden" id="taskId" />
 
@@ -239,40 +120,32 @@
 
       <select id="priority">
         <option value="">Select Priority</option>
-        <option value="High">High</option>
-        <option value="Medium">Medium</option>
-        <option value="Low">Low</option>
+        <option>High</option>
+        <option>Medium</option>
+        <option>Low</option>
       </select>
 
       <select id="status">
         <option value="">Select Status</option>
-        <option value="Pending">Pending</option>
-        <option value="Completed">Completed</option>
+        <option>Pending</option>
+        <option>Completed</option>
       </select>
 
       <button class="save-btn" onclick="saveTask()">Save Task</button>
     </div>
 
     <div class="filter-box">
-      <h3>Search, Filter, and Sort Tasks</h3>
-
       <input
         type="text"
         id="searchTitle"
-        placeholder="Search by title..."
+        placeholder="Search..."
         oninput="fetchTasks()"
       />
 
       <select id="filterStatus" onchange="fetchTasks()">
-        <option value="All">Show All</option>
-        <option value="Pending">Pending Only</option>
-        <option value="Completed">Completed Only</option>
-      </select>
-
-      <select id="sortOption" onchange="fetchTasks()">
-        <option value="default">Default Order</option>
-        <option value="due_date">Sort by Due Date</option>
-        <option value="priority">Sort by Priority</option>
+        <option value="All">All</option>
+        <option value="Pending">Pending</option>
+        <option value="Completed">Completed</option>
       </select>
     </div>
 
@@ -283,27 +156,16 @@
       const loggedInUser = localStorage.getItem("loggedInUser");
 
       if (!loggedInUser) {
-        alert("Please login first");
+        alert("Login first");
         window.location.href = "auth.html";
       }
 
       document.getElementById("welcomeText").innerText =
-        `Welcome, ${loggedInUser}`;
+        "Welcome " + loggedInUser;
 
       function logout() {
         localStorage.removeItem("loggedInUser");
         window.location.href = "auth.html";
-      }
-
-      function getPriorityClass(priority) {
-        if (priority === "High") return "priority-high";
-        if (priority === "Medium") return "priority-medium";
-        return "priority-low";
-      }
-
-      function getStatusClass(status) {
-        if (status === "Completed") return "status-completed";
-        return "status-pending";
       }
 
       function updateDashboard(tasks) {
@@ -316,60 +178,49 @@
         ).length;
       }
 
+      let chart;
+
+      function renderChart(tasks) {
+        const pending = tasks.filter((t) => t.status === "Pending").length;
+        const completed = tasks.filter((t) => t.status === "Completed").length;
+
+        if (chart) chart.destroy();
+
+        const ctx = document.getElementById("taskChart").getContext("2d");
+
+        chart = new Chart(ctx, {
+          type: "doughnut",
+          data: {
+            labels: ["Pending", "Completed"],
+            datasets: [
+              {
+                data: [pending, completed],
+              },
+            ],
+          },
+        });
+      }
+
       async function fetchTasks() {
         const res = await fetch(`${apiBase}/tasks/${loggedInUser}`);
         let tasks = await res.json();
 
         updateDashboard(tasks);
-
-        const filter = document.getElementById("filterStatus").value;
-        const searchText = document
-          .getElementById("searchTitle")
-          .value.toLowerCase();
-        const sortOption = document.getElementById("sortOption").value;
+        renderChart(tasks);
 
         const list = document.getElementById("taskList");
         list.innerHTML = "";
-
-        if (filter !== "All") {
-          tasks = tasks.filter((t) => t.status === filter);
-        }
-
-        if (searchText) {
-          tasks = tasks.filter((t) =>
-            t.title.toLowerCase().includes(searchText),
-          );
-        }
-
-        if (sortOption === "due_date") {
-          tasks.sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
-        }
-
-        if (sortOption === "priority") {
-          const priorityOrder = { High: 1, Medium: 2, Low: 3 };
-          tasks.sort(
-            (a, b) => priorityOrder[a.priority] - priorityOrder[b.priority],
-          );
-        }
 
         tasks.forEach((task) => {
           const div = document.createElement("div");
           div.className = "task";
 
-          const toggleText =
-            task.status === "Completed" ? "Mark Pending" : "Mark Complete";
-
           div.innerHTML = `
             <h3>${task.title}</h3>
             <p>${task.description}</p>
-            <p><b>Due:</b> ${task.due_date}</p>
-            <p>
-                <span class="badge ${getPriorityClass(task.priority)}">${task.priority}</span>
-                <span class="badge ${getStatusClass(task.status)}">${task.status}</span>
-            </p>
-            <button class="edit-btn" onclick="editTask(${task.id}, '${task.title}', '${task.description}', '${task.due_date}', '${task.priority}', '${task.status}')">Edit</button>
-            <button class="toggle-btn" onclick="toggleStatus(${task.id}, '${task.title}', '${task.description}', '${task.due_date}', '${task.priority}', '${task.status}')">${toggleText}</button>
-            <button class="delete-btn" onclick="deleteTask(${task.id})">Delete</button>
+            <p>${task.status}</p>
+
+            <button onclick="deleteTask(${task.id})">Delete</button>
         `;
 
           list.appendChild(div);
@@ -377,8 +228,6 @@
       }
 
       async function saveTask() {
-        const id = document.getElementById("taskId").value;
-
         const data = {
           title: document.getElementById("title").value,
           description: document.getElementById("description").value,
@@ -388,67 +237,10 @@
           username: loggedInUser,
         };
 
-        if (
-          !data.title ||
-          !data.description ||
-          !data.due_date ||
-          !data.priority ||
-          !data.status
-        ) {
-          alert("Fill all fields");
-          return;
-        }
-
-        if (id) {
-          await fetch(`${apiBase}/tasks/${id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data),
-          });
-        } else {
-          await fetch(`${apiBase}/tasks`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data),
-          });
-        }
-
-        clearForm();
-        fetchTasks();
-      }
-
-      function editTask(id, title, description, due_date, priority, status) {
-        document.getElementById("taskId").value = id;
-        document.getElementById("title").value = title;
-        document.getElementById("description").value = description;
-        document.getElementById("due_date").value = due_date;
-        document.getElementById("priority").value = priority;
-        document.getElementById("status").value = status;
-      }
-
-      async function toggleStatus(
-        id,
-        title,
-        description,
-        due_date,
-        priority,
-        status,
-      ) {
-        const newStatus = status === "Completed" ? "Pending" : "Completed";
-
-        const updatedTask = {
-          title: title,
-          description: description,
-          due_date: due_date,
-          priority: priority,
-          status: newStatus,
-          username: loggedInUser,
-        };
-
-        await fetch(`${apiBase}/tasks/${id}`, {
-          method: "PUT",
+        await fetch(`${apiBase}/tasks`, {
+          method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updatedTask),
+          body: JSON.stringify(data),
         });
 
         fetchTasks();
@@ -457,15 +249,6 @@
       async function deleteTask(id) {
         await fetch(`${apiBase}/tasks/${id}`, { method: "DELETE" });
         fetchTasks();
-      }
-
-      function clearForm() {
-        document.getElementById("taskId").value = "";
-        document.getElementById("title").value = "";
-        document.getElementById("description").value = "";
-        document.getElementById("due_date").value = "";
-        document.getElementById("priority").value = "";
-        document.getElementById("status").value = "";
       }
 
       fetchTasks();
